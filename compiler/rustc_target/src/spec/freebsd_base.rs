@@ -6,6 +6,7 @@ pub fn opts() -> TargetOptions {
         dynamic_linking: true,
         families: cvs!["unix"],
         has_rpath: true,
+        has_thread_local: true,
         position_independent_executables: true,
         relro_level: RelroLevel::Full,
         abi_return_struct_as_int: true,

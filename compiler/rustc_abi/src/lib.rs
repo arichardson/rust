@@ -170,6 +170,8 @@ pub struct TargetDataLayout {
     pub vector_align: Vec<(Size, AbiAndPrefAlign)>,
 
     pub instruction_address_space: AddressSpace,
+    pub globals_address_space: AddressSpace,
+    pub alloca_address_space: AddressSpace,
 
     /// Minimum size of #[repr(C)] enums (default I32 bits)
     pub c_enum_min_size: Integer,
@@ -196,7 +198,9 @@ impl Default for TargetDataLayout {
                 (Size::from_bits(64), AbiAndPrefAlign::new(align(64))),
                 (Size::from_bits(128), AbiAndPrefAlign::new(align(128))),
             ],
-            instruction_address_space: AddressSpace::DATA,
+            instruction_address_space: AddressSpace::ZERO,
+            globals_address_space: AddressSpace::ZERO,
+            alloca_address_space: AddressSpace::ZERO,
             c_enum_min_size: Integer::I32,
         }
     }
@@ -262,6 +266,12 @@ impl TargetDataLayout {
             match &*spec_parts {
                 ["e"] => dl.endian = Endian::Little,
                 ["E"] => dl.endian = Endian::Big,
+                [p] if p.starts_with('A') => {
+                    dl.alloca_address_space = parse_address_space(&p[1..], "A")?
+                }
+                [p] if p.starts_with('G') => {
+                    dl.globals_address_space = parse_address_space(&p[1..], "G")?
+                }
                 [p] if p.starts_with('P') => {
                     dl.instruction_address_space = parse_address_space(&p[1..], "P")?
                 }
@@ -1185,6 +1195,7 @@ pub struct AddressSpace(pub u32);
 
 impl AddressSpace {
     /// The default address space, corresponding to data space.
+    pub const ZERO: Self = AddressSpace(0);
     pub const DATA: Self = AddressSpace(0);
 }
 

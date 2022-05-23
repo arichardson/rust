@@ -17,7 +17,7 @@ pub fn target() -> Target {
             cpu: "generic-rv64".into(),
             // max_atomic_width: Some(128),
             max_atomic_width: Some(64),
-            features: "+m,+a,+c,+xcheri,+cap-mode,-relax,-save-restore,-xcheri-rvc".into(),
+            features: "+m,+a,+c,+xcheri,-cap-mode,-relax,-save-restore,-xcheri-rvc".into(),
             executables: true,
             panic_strategy: PanicStrategy::Abort,
             relocation_model: RelocModel::Static,

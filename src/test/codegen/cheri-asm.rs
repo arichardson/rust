@@ -12,13 +12,13 @@ macro_rules! asm {
     () => {};
 }
 
-// #[lang = "sized"]
-// trait Sized {}
-// #[lang = "copy"]
-// trait Copy {}
+#[lang = "sized"]
+trait Sized {}
+#[lang = "copy"]
+trait Copy {}
 
 pub unsafe fn cincoffset() {
-    // CHECK: call void asm sideeffect alignstack inteldialect "cincoffset cnull, cnull, 123"
+    // CHECK: tail call void asm sideeffect alignstack "cincoffset cnull, cnull, 123", "~{vtype},~{vl},~{vxsat},~{vxrm},~{memory}"()
     asm!(
         r"cincoffset cnull, cnull, 123",
     )

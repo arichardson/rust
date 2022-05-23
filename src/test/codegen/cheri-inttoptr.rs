@@ -2,7 +2,8 @@
 // when targetting a CHERI target
 //
 // needs-llvm-components: riscv
-// compile-flags: -C no-prepopulate-passes --target=riscv64imac-unknown-none-purecap-elf
+// FIXME: purecap
+// compile-flags: -C no-prepopulate-passes --target=riscv64imac-unknown-none-cheri-hybrid-elf
 
 #![crate_type = "lib"]
 #![no_core]

@@ -9,6 +9,7 @@ use std::ops::{Add, AddAssign, Mul, RangeInclusive, Sub};
 use std::str::FromStr;
 
 use bitflags::bitflags;
+use rustc_data_structures::fx::FxHashMap;
 #[cfg(feature = "nightly")]
 use rustc_data_structures::stable_hasher::StableOrd;
 use rustc_index::vec::{Idx, IndexVec};
@@ -163,6 +164,7 @@ pub struct TargetDataLayout {
     pub f32_align: AbiAndPrefAlign,
     pub f64_align: AbiAndPrefAlign,
     pub pointer_size: Size,
+    pub pointer_range: Size,
     pub pointer_align: AbiAndPrefAlign,
     pub aggregate_align: AbiAndPrefAlign,
 
@@ -192,6 +194,7 @@ impl Default for TargetDataLayout {
             f32_align: AbiAndPrefAlign::new(align(32)),
             f64_align: AbiAndPrefAlign::new(align(64)),
             pointer_size: Size::from_bits(64),
+            pointer_range: Size::from_bits(64),
             pointer_align: AbiAndPrefAlign::new(align(64)),
             aggregate_align: AbiAndPrefAlign { abi: align(0), pref: align(64) },
             vector_align: vec![
@@ -260,6 +263,16 @@ impl TargetDataLayout {
 
         let mut dl = TargetDataLayout::default();
         let mut i128_align_src = 64;
+        let mut pointer_attrs = FxHashMap::default();
+        // Add the default values: https://llvm.org/docs/LangRef.html#data-layout
+        pointer_attrs.insert(
+            AddressSpace::ZERO,
+            (
+                Size::from_bits(64),
+                AbiAndPrefAlign::new(Align::from_bits(64).unwrap()),
+                Size::from_bits(64),
+            ),
+        );
         for spec in input.split('-') {
             let spec_parts = spec.split(':').collect::<Vec<_>>();
 
@@ -278,9 +291,24 @@ impl TargetDataLayout {
                 ["a", ref a @ ..] => dl.aggregate_align = align(a, "a")?,
                 ["f32", ref a @ ..] => dl.f32_align = align(a, "f32")?,
                 ["f64", ref a @ ..] => dl.f64_align = align(a, "f64")?,
-                [p @ "p", s, ref a @ ..] | [p @ "p0", s, ref a @ ..] => {
-                    dl.pointer_size = size(s, p)?;
-                    dl.pointer_align = align(a, p)?;
+                [p, s, ref a @ ..] if p.starts_with('p') => {
+                    let addrspace = if *p == "p" {
+                        AddressSpace(0) // No numerical address space means zero
+                    } else if p.starts_with("pf") {
+                        parse_address_space(&p[2..], p)? // fat pointer (CHERI)
+                    } else {
+                        parse_address_space(&p[1..], p)?
+                    };
+                    let repr_size = size(s, p)?;
+                    let pointer_align = align(a, p)?;
+                    let pointer_range =
+                        if spec_parts.len() > 4 { size(spec_parts[4], p)? } else { repr_size };
+                    if pointer_range > Size::from_bits(64) {
+                        return Err(TargetDataLayoutErrors::InvalidBitsSize {
+                            err: "Pointer range > 64 bits is not supported".to_string(),
+                        });
+                    }
+                    pointer_attrs.insert(addrspace, (repr_size, pointer_align, pointer_range));
                 }
                 [s, ref a @ ..] if s.starts_with('i') => {
                     let Ok(bits) = s[1..].parse::<u64>() else {
@@ -316,6 +344,13 @@ impl TargetDataLayout {
                 _ => {} // Ignore everything else.
             }
         }
+        let pointer_info = pointer_attrs
+            .get(&dl.globals_address_space)
+            .or(pointer_attrs.get(&AddressSpace::ZERO))
+            .unwrap();
+        dl.pointer_size = pointer_info.0;
+        dl.pointer_align = pointer_info.1;
+        dl.pointer_range = pointer_info.2;
         Ok(dl)
     }
 
@@ -1190,7 +1225,7 @@ impl FieldsShape {
 /// An identifier that specifies the address space that some operation
 /// should operate on. Special address spaces have an effect on code generation,
 /// depending on the target and the address spaces it implements.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AddressSpace(pub u32);
 
 impl AddressSpace {

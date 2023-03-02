@@ -1497,7 +1497,7 @@ extern "C" LLVMValueRef LLVMRustBuildMemCpy(LLVMBuilderRef B,
   return wrap(unwrap(B)->CreateMemCpy(
       unwrap(Dst), MaybeAlign(DstAlign),
       unwrap(Src), MaybeAlign(SrcAlign),
-      unwrap(Size), IsVolatile));
+      unwrap(Size), llvm::PreserveCheriTags::TODO, IsVolatile));
 }
 
 extern "C" LLVMValueRef LLVMRustBuildMemMove(LLVMBuilderRef B,
@@ -1507,7 +1507,7 @@ extern "C" LLVMValueRef LLVMRustBuildMemMove(LLVMBuilderRef B,
   return wrap(unwrap(B)->CreateMemMove(
       unwrap(Dst), MaybeAlign(DstAlign),
       unwrap(Src), MaybeAlign(SrcAlign),
-      unwrap(Size), IsVolatile));
+      unwrap(Size), llvm::PreserveCheriTags::TODO, IsVolatile));
 }
 
 extern "C" LLVMValueRef LLVMRustBuildMemSet(LLVMBuilderRef B,

@@ -3,8 +3,7 @@ use crate::spec::{RelocModel, Target, TargetOptions};
 
 pub fn target() -> Target {
     Target {
-        data_layout: "e-m:e-pf200:128:128:128:64-p:64:64-i64:64-i128:128-n64-S128"
-            .into(),
+        data_layout: "e-m:e-pf200:128:128:128:64-p:64:64-i64:64-i128:128-n64-S128".into(),
         llvm_target: "riscv64-unknown-none-elf".into(),
         pointer_width: 64,
         arch: "riscv64".into(),
@@ -17,7 +16,7 @@ pub fn target() -> Target {
             cpu: "generic-rv64".into(),
             // max_atomic_width: Some(128),
             max_atomic_width: Some(64),
-            features: "+m,+a,+c,+xcheri,-cap-mode,-relax,-save-restore,-xcheri-rvc".into(),
+            features: "+m,+a,+c,+xcheri,-cap-mode,-relax".into(),
             executables: true,
             panic_strategy: PanicStrategy::Abort,
             relocation_model: RelocModel::Static,
